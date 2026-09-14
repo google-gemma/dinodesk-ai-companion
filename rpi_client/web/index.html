@@ -1,0 +1,2241 @@
+<!--
+Copyright 2026 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DinoDesk RPi Client - Test & Simulator</title>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #131b2e;
+      --card-border: #223050;
+      --screen-bg: #0a0a0f;
+      --accent-green: #10b981;
+      --accent-green-glow: rgba(16, 185, 129, 0.35);
+      --accent-amber: #f59e0b;
+      --accent-amber-glow: rgba(245, 158, 11, 0.35);
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-red: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      font-size: 28px;
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+      border-radius: 10px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+
+    .brand-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-red);
+      transition: background 0.3s ease;
+    }
+
+    .status-dot.connected {
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+    }
+
+    .main-grid {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 860px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Dino Display Simulator */
+    .screen-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .screen-bezel {
+      background: #1a1a24;
+      border: 3px solid #2d2d3d;
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.8), 0 8px 24px rgba(0,0,0,0.5);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-origin: center bottom;
+    }
+
+    .st7789-screen {
+      width: 240px;
+      height: 240px;
+      background: var(--screen-bg);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.95);
+      border: 1px solid #1c1c28;
+    }
+
+    .screen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+    }
+
+    .screen-mode-badge {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-green);
+      letter-spacing: 1px;
+      transition: color 0.3s ease;
+    }
+
+    .screen-mode-badge.cloud {
+      color: var(--accent-amber);
+    }
+
+    .screen-center {
+      position: absolute;
+      top: 35%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 34px;
+      font-weight: bold;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+      text-align: center;
+      letter-spacing: 2px;
+      white-space: pre;
+    }
+
+    .screen-subtitle-box {
+      background: rgba(20, 20, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px;
+      min-height: 65px;
+      max-height: 70px;
+      overflow-y: hidden;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #c8dcff;
+      word-break: break-word;
+      z-index: 2;
+    }
+
+    .state-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      background: #1e293b;
+      color: #94a3b8;
+    }
+
+    .state-indicator[data-state="IDLE"] { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #059669; }
+    .state-indicator[data-state="LISTENING"] { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid #2563eb; }
+    .state-indicator[data-state="THINKING"] { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid #7c3aed; }
+    .state-indicator[data-state="SPEAKING"] { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid #d97706; }
+    .state-indicator[data-state="SLEEPING"] { background: rgba(107, 114, 128, 0.15); color: #9ca3af; border: 1px solid #4b5563; }
+
+    /* Button Controls */
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin-top: 14px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-nose {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+
+    .btn-nose:hover {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-mode {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-mode:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    .btn-secondary {
+      background: #1a2234;
+      color: var(--text-muted);
+      border: 1px solid var(--card-border);
+      font-size: 12px;
+      padding: 8px 12px;
+    }
+
+    .btn-secondary:hover {
+      background: #232e46;
+      color: var(--text-main);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-accent:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+    }
+
+    /* Right column panels */
+    .right-panels {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Servo Motor Tester Styles */
+    .servo-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-hw {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .badge-sim {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    .servo-rig-box {
+      background: #080c16;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rig-svg {
+      width: 100%;
+      max-width: 440px;
+      height: 160px;
+    }
+
+    .servo-telemetry-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .servo-metric-badge {
+      background: #131b2e;
+      border: 1px solid var(--card-border);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .servo-metric-badge b {
+      color: #ffffff;
+    }
+
+    .servo-sliders-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .servo-control-row {
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .servo-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .servo-val-tag {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      background: #1a233a;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #38bdf8;
+      font-weight: 700;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .range-input {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1e293b;
+      outline: none;
+    }
+
+    .range-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+      transition: transform 0.1s;
+    }
+
+    .range-input::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .servo-quick-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mini-chip {
+      background: #162035;
+      border: 1px solid #283756;
+      color: #94a3b8;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .mini-chip:hover {
+      background: #253350;
+      color: #ffffff;
+      border-color: var(--accent-blue);
+    }
+
+    .servo-preset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+    }
+
+    /* Prompt Box */
+    .prompt-area {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 80px;
+      background: #0a0f1d;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    textarea:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .presets-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      background: #1a2236;
+      border: 1px solid #283756;
+      color: #93c5fd;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .chip:hover {
+      background: #253350;
+      border-color: var(--accent-blue);
+      color: #ffffff;
+    }
+
+    .prompt-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .mode-select-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    select {
+      background: #0a0f1d;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+      font-size: 13px;
+    }
+
+    /* Gateway Config */
+    .config-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .config-input {
+      flex: 1;
+      background: #0a0f1d;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+    }
+
+    .config-input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    /* Audio Toggle */
+    .audio-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #334155;
+      transition: .2s;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-green);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    /* Log Box */
+    .log-box {
+      background: #080c16;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      height: 160px;
+      overflow-y: auto;
+      padding: 10px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      color: #94a3b8;
+    }
+
+    .log-entry .time {
+      color: #475569;
+      margin-right: 6px;
+    }
+
+    .log-entry.event-state { color: #60a5fa; }
+    .log-entry.event-token {
+      color: #e2e8f0;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .log-entry.event-sound { color: #fbbf24; }
+    .log-entry.event-motor { color: #34d399; }
+    .log-entry.event-error { color: #f87171; }
+
+    /* Notes & Memos Panel Styles */
+    .notes-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .notes-list-container::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .notes-list-container::-webkit-scrollbar-thumb {
+      background: var(--card-border);
+      border-radius: 4px;
+    }
+
+    .note-card {
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-left: 4px solid var(--accent-amber);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      transition: all 0.2s ease;
+      animation: noteFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes noteFadeIn {
+      0% { opacity: 0; transform: translateY(-8px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .note-card:hover {
+      border-color: #3b507a;
+      border-left-color: #fbbf24;
+      background: #111a2e;
+    }
+
+    .note-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .note-time {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .note-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .note-btn-icon {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .note-btn-icon:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .note-btn-icon.delete:hover {
+      color: var(--accent-red);
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    .note-content {
+      font-size: 13px;
+      color: #e2e8f0;
+      line-height: 1.45;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .note-empty {
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    /* Reminders Panel Styles */
+    .reminders-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .reminders-list-container::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .reminders-list-container::-webkit-scrollbar-thumb {
+      background: var(--card-border);
+      border-radius: 4px;
+    }
+
+    .reminder-card {
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      transition: all 0.2s ease;
+      animation: noteFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reminder-card.triggered {
+      border-left-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.06);
+    }
+
+    .reminder-card:hover {
+      border-color: #3b507a;
+      background: #111a2e;
+    }
+
+    .reminder-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .countdown-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+
+    .countdown-badge.due {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.4);
+      animation: pulseAlert 1.5s infinite;
+    }
+
+    @keyframes pulseAlert {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .preset-pill-btn {
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #93c5fd;
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .preset-pill-btn:hover {
+      background: rgba(59, 130, 246, 0.25);
+      color: #ffffff;
+      border-color: rgba(59, 130, 246, 0.6);
+    }
+
+    .note-empty {
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--text-muted);
+      font-size: 13px;
+      background: #080c16;
+      border: 1px dashed var(--card-border);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🦖</div>
+      <div>
+        <div class="brand-title">DinoDesk RPi Client</div>
+        <div class="brand-subtitle">Interactive PC Testbench & Servo Simulator</div>
+      </div>
+    </div>
+    <div class="connection-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </header>
+
+  <div class="main-grid">
+    <!-- Left Column: Virtual Screen & Physical Buttons -->
+    <div class="card screen-container">
+      <div class="card-title" style="width: 100%;">
+        <span>Hardware Display</span>
+        <span style="font-size: 11px; color: var(--text-dim);">ST7789 240x240</span>
+      </div>
+
+      <div class="screen-bezel" id="screenBezel">
+        <div class="st7789-screen" id="st7789Screen">
+          <div class="screen-header">
+            <span class="screen-mode-badge" id="screenModeBadge">[LOCAL]</span>
+            <span style="font-size: 10px; color: #4b5563;">240x240</span>
+          </div>
+          <div class="screen-center" id="screenExpression">•   •</div>
+          <div class="screen-subtitle-box" id="screenSubtitle" style="display: none;"></div>
+        </div>
+      </div>
+
+      <div class="state-indicator" id="stateIndicator" data-state="IDLE">
+        STATE: <span id="stateName">IDLE</span>
+      </div>
+
+      <!-- Physical Buttons Simulator (PRD Section 5) -->
+      <div class="button-group">
+        <button class="btn btn-nose" id="btnNose" 
+                onmousedown="triggerNoseDown()" 
+                onmouseup="triggerNoseUp()" 
+                onmouseleave="handleNoseLeave()"
+                ontouchstart="triggerNoseDown(event)" 
+                ontouchend="triggerNoseUp(event)"
+                title="LEGO Nose Switch (Hold to record audio from USB microphone)">
+          👃 Hold Nose to Talk
+        </button>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn btn-secondary" onclick="triggerBtnA()" title="Pirate Btn A (GPIO 5): Single click to Cancel / Double click to Power Off">
+            [A] Cancel
+          </button>
+          <button class="btn btn-secondary" onclick="triggerBtnB()" title="Pirate Btn B (GPIO 6): Re-center / Home Position">
+            [B] Re-center
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn btn-mode" id="btnToggleMode" onclick="triggerModeToggle()" title="Toggle Local / Cloud mode">
+            [X] Mode
+          </button>
+          <button class="btn btn-secondary" onclick="triggerBtnY()" title="Pirate Btn Y (GPIO 24): Tail Knock Test">
+            [Y] Tail Knock
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+          <button class="btn btn-secondary" onclick="triggerSleepToggle()" title="Toggle Sleep / Wake">
+            💤 Sleep
+          </button>
+          <button class="btn btn-secondary" onclick="triggerBtnXDouble()" title="Double-Click X (Toggle Mode)">
+            ⚡ 2x [X]
+          </button>
+          <button class="btn btn-secondary" onclick="triggerBtnADouble()" title="Double-Click A (Exit & Power Off)" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);">
+            ⏻ 2x [A]
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Servo Motor Tester, Prompt Sandbox & Logs -->
+    <div class="right-panels">
+
+      <!-- Servo Motor Tester & Kinematics Simulator -->
+      <div class="card">
+        <div class="card-title">
+          <div class="servo-panel-header">
+            <span>Servo Motor Tester</span>
+            <span class="badge-pill badge-sim" id="servoHwBadge">Virtual Servos</span>
+          </div>
+          <div class="audio-control">
+            <label class="switch">
+              <input type="checkbox" id="autoSyncToggle" checked>
+              <span class="slider"></span>
+            </label>
+            <span style="font-size: 12px;">Auto-Sync FSM</span>
+          </div>
+        </div>
+
+        <!-- 2D Animated Kinematic Visualizer -->
+        <div class="servo-rig-box">
+          <svg class="rig-svg" id="rigSvg" viewBox="0 0 440 160">
+            <defs>
+              <linearGradient id="bodyGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#059669" />
+                <stop offset="100%" stop-color="#047857" />
+              </linearGradient>
+              <linearGradient id="headGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#059669" />
+              </linearGradient>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+
+            <!-- Ground Base Line -->
+            <line x1="20" y1="145" x2="420" y2="145" stroke="#223050" stroke-width="2" stroke-dasharray="4" />
+
+            <!-- Tail Assembly (Rotates around Tail Pivot at 170, 110) -->
+            <g id="svgTailGroup" transform="translate(170, 110) rotate(0)">
+              <rect x="-60" y="-8" width="60" height="16" rx="6" fill="#047857" stroke="#10b981" stroke-width="1.5" />
+              <!-- LEGO stud on tail -->
+              <circle cx="-35" cy="-8" r="4" fill="#059669" />
+              <circle cx="-15" cy="-8" r="4" fill="#059669" />
+              <circle cx="0" cy="0" r="4" fill="#34d399" />
+            </g>
+
+            <!-- Dino Body Box (Center Anchor at 170, 75) -->
+            <g id="svgBody">
+              <rect x="170" y="65" width="100" height="70" rx="14" fill="url(#bodyGrad)" stroke="#10b981" stroke-width="2" />
+              <!-- LEGO Studs on body -->
+              <circle cx="195" cy="65" r="5" fill="#34d399" />
+              <circle cx="220" cy="65" r="5" fill="#34d399" />
+              <circle cx="245" cy="65" r="5" fill="#34d399" />
+              <!-- Feet -->
+              <rect x="185" y="135" width="25" height="10" rx="3" fill="#047857" />
+              <rect x="230" y="135" width="25" height="10" rx="3" fill="#047857" />
+            </g>
+
+            <!-- Neck & Head Assembly (Rotates around Neck Pivot at 260, 85) -->
+            <g id="svgNeckGroup" transform="translate(260, 85) rotate(0)">
+              <!-- Neck link -->
+              <rect x="0" y="-12" width="45" height="24" rx="8" fill="#059669" stroke="#10b981" stroke-width="1.5" />
+              <!-- Head Block with Face -->
+              <g transform="translate(40, -25)">
+                <rect x="0" y="0" width="75" height="60" rx="12" fill="url(#headGrad)" stroke="#34d399" stroke-width="2" />
+                <!-- Screen Bezel -->
+                <rect x="12" y="8" width="45" height="42" rx="6" fill="#0a0a0f" stroke="#1e293b" />
+                <text x="34" y="34" fill="#ffffff" font-family="Courier New" font-size="14" font-weight="bold" text-anchor="middle" id="svgEyeText">• •</text>
+                <!-- Red Nose Stud (Switch) -->
+                <rect x="73" y="24" width="10" height="16" rx="3" fill="#ef4444" stroke="#dc2626" />
+              </g>
+              <!-- Neck pivot circle -->
+              <circle cx="0" cy="0" r="5" fill="#38bdf8" />
+            </g>
+
+            <!-- Knock Pulse Wave Indicator -->
+            <text x="80" y="90" id="svgKnockPulse" fill="#fbbf24" font-family="Courier New" font-size="12" font-weight="bold" opacity="0" filter="url(#glow)">*KNOCK*</text>
+          </svg>
+
+          <!-- Real-time angle badges -->
+          <div class="servo-telemetry-row">
+            <div class="servo-metric-badge">
+              <span>Neck Tilt:</span>
+              <b id="badgeNeckTilt">0.0°</b>
+            </div>
+            <div class="servo-metric-badge">
+              <span>Neck Pan:</span>
+              <b id="badgeNeckPan">0.0°</b>
+            </div>
+            <div class="servo-metric-badge">
+              <span>Tail Speed:</span>
+              <b id="badgeTailSpeed">0.00</b>
+            </div>
+            <div class="servo-metric-badge" id="badgeKnocking" style="display: none; color: #fbbf24;">
+              <span>Knocking:</span> <b>ACTIVE</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Range Sliders -->
+        <div class="servo-sliders-grid">
+          <!-- Neck Tilt Slider -->
+          <div class="servo-control-row">
+            <div class="servo-label-row">
+              <span>Neck Tilt (Pitch)</span>
+              <span class="servo-val-tag" id="valNeckTilt">0.0°</span>
+            </div>
+            <input type="range" class="range-input" id="sliderNeckTilt" min="-20" max="30" step="1" value="0" oninput="onSliderChange()">
+            <div class="servo-quick-chips">
+              <span class="mini-chip" onclick="setSliderVal('sliderNeckTilt', -15)">😴 Sleep (-15°)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderNeckTilt', 0)">🏠 Home (0°)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderNeckTilt', 15)">👂 Listen (+15°)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderNeckTilt', 30)">⭐ Max (+30°)</span>
+            </div>
+          </div>
+
+          <!-- Neck Pan / Sway Slider -->
+          <div class="servo-control-row">
+            <div class="servo-label-row">
+              <span>Neck Pan (Yaw / Sway)</span>
+              <span class="servo-val-tag" id="valNeckPan">0.0°</span>
+            </div>
+            <input type="range" class="range-input" id="sliderNeckPan" min="-30" max="30" step="1" value="0" oninput="onSliderChange()">
+            <div class="servo-quick-chips">
+              <span class="mini-chip" onclick="setSliderVal('sliderNeckPan', -20)">◀ Left (-20°)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderNeckPan', 0)">• Center (0°)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderNeckPan', 20)">▶ Right (+20°)</span>
+            </div>
+          </div>
+
+          <!-- Tail Speed Slider -->
+          <div class="servo-control-row">
+            <div class="servo-label-row">
+              <span>Tail Speed (-1.0 ~ 1.0)</span>
+              <span class="servo-val-tag" id="valTailSpeed">0.00</span>
+            </div>
+            <input type="range" class="range-input" id="sliderTailSpeed" min="-1.0" max="1.0" step="0.05" value="0" oninput="onSliderChange()">
+            <div class="servo-quick-chips">
+              <span class="mini-chip" onclick="setSliderVal('sliderTailSpeed', -1.0)">◀ Rev (-1.0)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderTailSpeed', -0.5)">◀ Slow (-0.5)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderTailSpeed', 0)">⏹ Stop (0.0)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderTailSpeed', 0.5)">▶ Slow (+0.5)</span>
+              <span class="mini-chip" onclick="setSliderVal('sliderTailSpeed', 1.0)">▶ Fwd (+1.0)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Motion Tests -->
+        <div class="servo-preset-grid">
+          <button class="btn btn-secondary" onclick="applyPreset('sleep')">😴 Sleep Pose</button>
+          <button class="btn btn-secondary" onclick="applyPreset('listen')">👂 Listen Attention</button>
+          <button class="btn btn-secondary" onclick="applyPreset('thinking')">🤔 Thinking (Tilt & Sway)</button>
+          <button class="btn btn-secondary" onclick="triggerKnock(1, 100)">🦴 Single Knock</button>
+          <button class="btn btn-secondary" onclick="triggerKnock(3, 100)">💥 3x Tail Knock</button>
+          <button class="btn btn-accent" onclick="applyPreset('home')">🏠 Re-center Home</button>
+        </div>
+      </div>
+
+      <!-- Prompt Testing Sandbox -->
+      <div class="card">
+        <div class="card-title">
+          <span>Prompt Sandbox</span>
+          <div class="audio-control">
+            <label class="switch">
+              <input type="checkbox" id="audioToggle" checked>
+              <span class="slider"></span>
+            </label>
+            <span style="font-size: 12px;">Web Audio SFX</span>
+          </div>
+        </div>
+
+        <div class="prompt-area">
+          <textarea id="promptInput" placeholder="Type a prompt to test inference (or pick a preset below)..." onkeydown="handleKeyDown(event)"></textarea>
+          
+          <div class="presets-container">
+            <div class="chip" onclick="usePreset('Hello Dino, what time is it?')">🦖 What time is it?</div>
+            <div class="chip" onclick="usePreset('Take a note: Buy groceries and coffee')">📝 Take a note</div>
+            <div class="chip" onclick="usePreset('Remember that team standup is at 10 AM tomorrow')">📌 Standup Reminder</div>
+            <div class="chip" onclick="usePreset('Tell me a short dinosaur joke.')">😄 Dino Joke</div>
+            <div class="chip" onclick="usePreset('Explain quantum computing in 10 words.')">⚛️ Quantum Tech</div>
+            <div class="chip" onclick="usePreset('Write a 2-line rhyme about Python and Raspberry Pi.')">🐍 Pi Rhyme</div>
+          </div>
+
+          <div class="prompt-actions">
+            <div class="mode-select-group">
+              <label for="modeOverride">Target Mode:</label>
+              <select id="modeOverride">
+                <option value="CURRENT">Keep Current Mode</option>
+                <option value="LOCAL">Local (Gemma 4)</option>
+                <option value="CLOUD">Cloud (Gemini Flash)</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" id="btnSendPrompt" onclick="sendCustomPrompt()">
+              🚀 Send Prompt (Ctrl+Enter)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saved Notes & Memos Panel -->
+      <div class="card" id="notesCard">
+        <div class="card-title">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>📝 Saved Notes & Memos</span>
+            <span class="badge-pill" id="notesCountBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">0 notes</span>
+          </div>
+          <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="clearAllNotes()">Clear All</button>
+        </div>
+
+        <!-- Quick Manual Note Input -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input type="text" id="manualNoteInput" class="config-input" placeholder="Type a note or memo directly (Press Enter)..." onkeydown="handleNoteKeyDown(event)" />
+          <button class="btn btn-accent" style="padding: 8px 14px; white-space: nowrap; font-size: 12px;" onclick="addManualNote()">+ Add Note</button>
+        </div>
+
+        <!-- Notes List Container -->
+        <div class="notes-list-container" id="notesList">
+          <div class="note-empty" id="notesEmptyState">
+            <div style="font-size: 24px; margin-bottom: 6px;">🦖 📝</div>
+            <div>No notes yet!</div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Say <i>"Take a note: Buy coffee"</i> to Dino, or type one above.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reminders & Timers Panel -->
+      <div class="card" id="remindersCard">
+        <div class="card-title">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>⏰ Reminders & Timers</span>
+            <span class="badge-pill" id="remindersCountBadge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">0 active</span>
+          </div>
+          <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="clearAllReminders()">Clear All</button>
+        </div>
+
+        <!-- Quick Reminder Presets -->
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
+          <span style="font-size: 11px; color: var(--text-dim); align-self: center; margin-right: 4px;">Quick Presets:</span>
+          <button class="preset-pill-btn" onclick="quickSetReminder(10, 'Drink water 💧')">+10s Water</button>
+          <button class="preset-pill-btn" onclick="quickSetReminder(30, 'Stand up & stretch 🧘')">+30s Stretch</button>
+          <button class="preset-pill-btn" onclick="quickSetReminder(60, 'Take a quick break ☕')">+1m Break</button>
+          <button class="preset-pill-btn" onclick="quickSetReminder(300, 'Focus sprint check 🎯')">+5m Sprint</button>
+        </div>
+
+        <!-- Custom Reminder Input -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input type="text" id="manualReminderInput" class="config-input" placeholder="Reminder message (e.g., Check oven)..." onkeydown="handleReminderKeyDown(event)" />
+          <select id="manualReminderDuration" class="config-input" style="width: 110px; flex-shrink: 0;">
+            <option value="10">10 sec</option>
+            <option value="30">30 sec</option>
+            <option value="60" selected>1 min</option>
+            <option value="120">2 min</option>
+            <option value="300">5 min</option>
+            <option value="600">10 min</option>
+            <option value="900">15 min</option>
+            <option value="1800">30 min</option>
+            <option value="3600">1 hour</option>
+          </select>
+          <button class="btn btn-accent" style="padding: 8px 14px; white-space: nowrap; font-size: 12px;" onclick="addManualReminder()">+ Set Reminder</button>
+        </div>
+
+        <!-- Reminders List Container -->
+        <div class="reminders-list-container" id="remindersList">
+          <div class="note-empty" id="remindersEmptyState">
+            <div style="font-size: 24px; margin-bottom: 6px;">🦖 ⏰</div>
+            <div>No active reminders!</div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Say <i>"Remind me in 10 seconds to drink water"</i> or use the presets above.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gateway Configuration -->
+      <div class="card">
+        <div class="card-title">
+          <span>Gateway Endpoint</span>
+          <span style="font-size: 11px; color: var(--text-dim);">FastAPI Model Router</span>
+        </div>
+        <div class="config-row">
+          <input type="text" id="gatewayUrlInput" class="config-input" value="http://127.0.0.1:8000/v1/chat/stream" />
+          <button class="btn btn-secondary" onclick="updateGatewayUrl()">Save</button>
+          <button class="btn btn-secondary" onclick="pingGateway()">Ping</button>
+        </div>
+      </div>
+
+      <!-- Live Stream & Event Log -->
+      <div class="card">
+        <div class="card-title">
+          <span>Live Event Activity</span>
+          <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="clearLog()">Clear Log</button>
+        </div>
+        <div class="log-box" id="logBox">
+          <div class="log-entry"><span class="time">[INIT]</span> Web testbench & Servo Tester initialized. Waiting for events...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let currentState = "IDLE";
+    let currentMode = "LOCAL";
+    let gatewayUrl = "";
+    let sseEventSource = null;
+    let audioCtx = null;
+    let activeStreamEntry = null;
+    let activeStreamContent = null;
+    let motorDebounceTimer = null;
+    let isUserDraggingSlider = false;
+
+    // Current Motors State
+    let currentMotors = {
+      neck_tilt: 0.0,
+      neck_pan: 0.0,
+      tail_speed: 0.0,
+      is_knocking: false,
+      hardware_active: false
+    };
+
+    // Web Audio Sound FX
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtxClass) {
+          audioCtx = new AudioCtxClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playBeep(freq, duration) {
+      if (!document.getElementById("audioToggle").checked) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {
+        console.warn("Audio play error", e);
+      }
+    }
+
+    function playWakeChime() {
+      playBeep(523, 0.08);
+      setTimeout(() => playBeep(659, 0.08), 80);
+    }
+
+    function playReminderAlarm() {
+      playBeep(523, 0.09);
+      setTimeout(() => playBeep(659, 0.09), 100);
+      setTimeout(() => playBeep(784, 0.16), 200);
+    }
+
+    function playTypewriterBeep() {
+      playBeep(880, 0.03);
+    }
+
+    // Logger
+    function addLog(msg, type = "event-token") {
+      const logBox = document.getElementById("logBox");
+      const entry = document.createElement("div");
+      entry.className = `log-entry ${type}`;
+      const timeStr = new Date().toLocaleTimeString();
+      entry.innerHTML = `<span class="time">[${timeStr}]</span> ${msg}`;
+      logBox.appendChild(entry);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById("logBox").innerHTML = "";
+      activeStreamEntry = null;
+      activeStreamContent = null;
+    }
+
+    // UI Update functions
+    function updateDisplay(state, mode, expression, subtitle) {
+      currentState = state || currentState;
+      currentMode = mode || currentMode;
+
+      // Update state badge
+      const stateIndicator = document.getElementById("stateIndicator");
+      const stateName = document.getElementById("stateName");
+      stateIndicator.setAttribute("data-state", currentState);
+      stateName.innerText = currentState;
+
+      // Update Mode Badge
+      const modeBadge = document.getElementById("screenModeBadge");
+      modeBadge.innerText = `[${currentMode}]`;
+      if (currentMode === "CLOUD") {
+        modeBadge.className = "screen-mode-badge cloud";
+      } else {
+        modeBadge.className = "screen-mode-badge";
+      }
+
+      // Update expression
+      if (expression !== undefined) {
+        document.getElementById("screenExpression").innerText = expression;
+        const svgEye = document.getElementById("svgEyeText");
+        if (svgEye) svgEye.textContent = expression;
+      }
+
+      // Update Subtitle
+      if (subtitle !== undefined && subtitle !== null) {
+        const subBox = document.getElementById("screenSubtitle");
+        if (currentState === "SLEEPING") {
+          subBox.innerText = "";
+          subBox.style.display = "none";
+        } else {
+          subBox.innerText = subtitle;
+          subBox.style.display = subtitle ? "block" : "none";
+        }
+      }
+    }
+
+    // Servo & Kinematic UI Update
+    function updateMotorDisplay(motors, syncSliders = true) {
+      if (!motors) return;
+      currentMotors = Object.assign({}, currentMotors, motors);
+
+      const tilt = currentMotors.neck_tilt ?? 0;
+      const pan = currentMotors.neck_pan ?? 0;
+      const tailSpeed = currentMotors.tail_speed !== undefined ? currentMotors.tail_speed : (currentMotors.tail_angle ?? 0);
+      const knocking = currentMotors.is_knocking;
+      const isHw = currentMotors.hardware_active;
+
+      // Update Hardware Status Badge
+      const hwBadge = document.getElementById("servoHwBadge");
+      if (hwBadge) {
+        if (isHw) {
+          hwBadge.className = "badge-pill badge-hw";
+          hwBadge.innerText = "GPIO PWM Active";
+        } else {
+          hwBadge.className = "badge-pill badge-sim";
+          hwBadge.innerText = "Virtual Emulated";
+        }
+      }
+
+      // Update Telemetry Badges
+      document.getElementById("badgeNeckTilt").innerText = `${tilt.toFixed(1)}°`;
+      document.getElementById("badgeNeckPan").innerText = `${pan.toFixed(1)}°`;
+      const tailBadge = document.getElementById("badgeTailSpeed") || document.getElementById("badgeTailAngle");
+      if (tailBadge) {
+        tailBadge.innerText = (tailSpeed >= 0 ? "+" : "") + tailSpeed.toFixed(2);
+      }
+      
+      const knockBadge = document.getElementById("badgeKnocking");
+      if (knockBadge) {
+        knockBadge.style.display = knocking ? "flex" : "none";
+      }
+
+      // Update Slider Value Tags & Sliders (if not actively being dragged)
+      document.getElementById("valNeckTilt").innerText = `${tilt.toFixed(1)}°`;
+      document.getElementById("valNeckPan").innerText = `${pan.toFixed(1)}°`;
+      const valTail = document.getElementById("valTailSpeed") || document.getElementById("valTailAngle");
+      if (valTail) {
+        valTail.innerText = (tailSpeed >= 0 ? "+" : "") + tailSpeed.toFixed(2);
+      }
+
+      if (syncSliders && !isUserDraggingSlider) {
+        document.getElementById("sliderNeckTilt").value = tilt;
+        document.getElementById("sliderNeckPan").value = pan;
+        const sliderTail = document.getElementById("sliderTailSpeed") || document.getElementById("sliderTailAngle");
+        if (sliderTail) {
+          sliderTail.value = tailSpeed;
+        }
+      }
+
+      // Animate SVG Rig Kinematics
+      const svgNeck = document.getElementById("svgNeckGroup");
+      if (svgNeck) {
+        // Neck tilt rotates around pivot (260, 85)
+        // Add subtle horizontal translation based on pan
+        const panOffset = pan * 0.3;
+        svgNeck.setAttribute("transform", `translate(${260 + panOffset}, 85) rotate(${-tilt})`);
+      }
+
+      const svgTail = document.getElementById("svgTailGroup");
+      if (svgTail) {
+        // Continuous rotation speed visually mapped to rotation angle in 2D preview (-35 deg to +35 deg)
+        const tailDeg = tailSpeed * 35;
+        svgTail.setAttribute("transform", `translate(170, 110) rotate(${tailDeg})`);
+      }
+
+      const svgKnockPulse = document.getElementById("svgKnockPulse");
+      if (svgKnockPulse) {
+        svgKnockPulse.setAttribute("opacity", knocking || Math.abs(tailSpeed) > 0.1 ? "1" : "0");
+      }
+    }
+
+    // Sliders input handler
+    function onSliderChange() {
+      isUserDraggingSlider = true;
+      const tilt = parseFloat(document.getElementById("sliderNeckTilt").value);
+      const pan = parseFloat(document.getElementById("sliderNeckPan").value);
+      const sliderTail = document.getElementById("sliderTailSpeed") || document.getElementById("sliderTailAngle");
+      const tailSpeed = parseFloat(sliderTail ? sliderTail.value : 0);
+
+      updateMotorDisplay({ neck_tilt: tilt, neck_pan: pan, tail_speed: tailSpeed }, false);
+
+      if (motorDebounceTimer) clearTimeout(motorDebounceTimer);
+      motorDebounceTimer = setTimeout(() => {
+        sendServoMove(tilt, pan, tailSpeed);
+        isUserDraggingSlider = false;
+      }, 40);
+    }
+
+    function setSliderVal(sliderId, val) {
+      document.getElementById(sliderId).value = val;
+      onSliderChange();
+    }
+
+    async function sendServoMove(tilt, pan, tailSpeed) {
+      try {
+        const res = await fetch("/api/servos/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ neck_tilt: tilt, neck_pan: pan, tail_speed: tailSpeed, tail_angle: tailSpeed })
+        });
+        const data = await res.json();
+        if (data.motors) {
+          updateMotorDisplay(data.motors, false);
+        }
+      } catch (e) {
+        console.warn("Servo move error", e);
+      }
+    }
+
+    async function applyPreset(presetName) {
+      addLog(`Servo Preset: <b>${presetName}</b>`, "event-motor");
+      try {
+        const res = await fetch("/api/servos/preset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ preset: presetName })
+        });
+        const data = await res.json();
+        if (data.motors) {
+          updateMotorDisplay(data.motors, true);
+        }
+      } catch (e) {
+        addLog(`Preset failed: ${e.message}`, "event-error");
+      }
+    }
+
+    async function triggerKnock(count = 1, delay_ms = 100) {
+      addLog(`Triggered Tail Knock (${count}x)`, "event-motor");
+      try {
+        await fetch("/api/servos/knock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ count: count, delay_ms: delay_ms })
+        });
+      } catch (e) {
+        addLog(`Knock trigger error: ${e.message}`, "event-error");
+      }
+    }
+
+    // Physical Buttons Actions (PRD Section 5)
+    let isNoseHeld = false;
+
+    async function triggerNoseDown(e) {
+      if (e && e.type === "touchstart") e.preventDefault();
+      if (isNoseHeld) return;
+      isNoseHeld = true;
+      getAudioContext();
+      const btn = document.getElementById("btnNose");
+      if (btn) btn.innerText = "🎙️ Recording USB Mic... (Release to send)";
+      addLog("Action: Holding Nose Button (Recording audio from USB mic)", "event-sound");
+      try {
+        await fetch("/api/button/nose_down", { method: "POST" });
+      } catch (e) {
+        addLog(`Error triggering nose down: ${e.message}`, "event-error");
+      }
+    }
+
+    async function triggerNoseUp(e) {
+      if (e && e.type === "touchend") e.preventDefault();
+      if (!isNoseHeld) return;
+      isNoseHeld = false;
+      const btn = document.getElementById("btnNose");
+      if (btn) btn.innerText = "👃 Hold Nose to Talk";
+      addLog("Action: Released Nose Button (Submitting audio to inference)", "event-state");
+      try {
+        await fetch("/api/button/nose_up", { method: "POST" });
+      } catch (e) {
+        addLog(`Error triggering nose up: ${e.message}`, "event-error");
+      }
+    }
+
+    function handleNoseLeave() {
+      if (isNoseHeld) {
+        triggerNoseUp();
+      }
+    }
+
+    async function triggerNosePress() {
+      await triggerNoseDown();
+      setTimeout(triggerNoseUp, 1500);
+    }
+
+    async function triggerBtnA() {
+      addLog("Action: Pressed Button A (Cancel)", "event-state");
+      try {
+        await fetch("/api/button/btn_a", { method: "POST" });
+      } catch (e) {
+        addLog(`Error Btn A: ${e.message}`, "event-error");
+      }
+    }
+
+    async function triggerBtnADouble() {
+      addLog("Action: Double-Clicked Button A (Exit & Power Off)", "event-state");
+      try {
+        await fetch("/api/button/btn_a_double", { method: "POST" });
+      } catch (e) {
+        addLog(`Error Double-Click Btn A: ${e.message}`, "event-error");
+      }
+    }
+
+    async function triggerBtnB() {
+      addLog("Action: Pressed Button B (Re-center / Home)", "event-motor");
+      try {
+        const res = await fetch("/api/button/btn_b", { method: "POST" });
+        const data = await res.json();
+        if (data.motors) {
+          updateMotorDisplay(data.motors, true);
+        }
+      } catch (e) {
+        addLog(`Error Btn B: ${e.message}`, "event-error");
+      }
+    }
+
+    async function triggerBtnY() {
+      addLog("Action: Pressed Button Y (Tail Knock Test)", "event-motor");
+      try {
+        await fetch("/api/button/btn_y", { method: "POST" });
+      } catch (e) {
+        addLog(`Error Btn Y: ${e.message}`, "event-error");
+      }
+    }
+
+    async function triggerModeToggle() {
+      try {
+        const res = await fetch("/api/button/mode", { method: "POST" });
+        const data = await res.json();
+        addLog(`Action: Mode toggled to <b>${data.mode}</b>`, "event-state");
+      } catch (e) {
+        addLog(`Error toggling mode: ${e.message}`, "event-error");
+      }
+    }
+
+    async function triggerBtnXDouble() {
+      try {
+        const res = await fetch("/api/button/btn_x_double", { method: "POST" });
+        const data = await res.json();
+        addLog(`Action: Double-click Btn X -> Mode is now <b>${data.mode}</b>`, "event-state");
+      } catch (e) {
+        addLog(`Error double-clicking Btn X: ${e.message}`, "event-error");
+      }
+    }
+
+    async function triggerSleepToggle() {
+      try {
+        const res = await fetch("/api/button/sleep", { method: "POST" });
+        const data = await res.json();
+        addLog(`Action: Toggled sleep state -> <b>${data.state}</b>`, "event-state");
+      } catch (e) {
+        addLog(`Error toggling sleep: ${e.message}`, "event-error");
+      }
+    }
+
+    function usePreset(text) {
+      document.getElementById("promptInput").value = text;
+      document.getElementById("promptInput").focus();
+    }
+
+    function handleKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        sendCustomPrompt();
+      }
+    }
+
+    async function sendCustomPrompt() {
+      getAudioContext();
+      const promptInput = document.getElementById("promptInput");
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+
+      const modeOverride = document.getElementById("modeOverride").value;
+      const payload = { prompt: prompt };
+      if (modeOverride !== "CURRENT") {
+        payload.mode = modeOverride;
+      }
+
+      addLog(`Sending Prompt [${modeOverride}]: "${prompt}"`, "event-state");
+
+      try {
+        const res = await fetch("/api/prompt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.error) {
+          addLog(`Prompt error: ${data.error}`, "event-error");
+        }
+      } catch (e) {
+        addLog(`Failed to send prompt: ${e.message}`, "event-error");
+      }
+    }
+
+    async function updateGatewayUrl() {
+      const url = document.getElementById("gatewayUrlInput").value.trim();
+      try {
+        const res = await fetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gateway_url: url })
+        });
+        const data = await res.json();
+        addLog(`Saved Gateway URL: ${data.gateway_url}`, "event-state");
+      } catch (e) {
+        addLog(`Failed to save Gateway URL: ${e.message}`, "event-error");
+      }
+    }
+
+    async function pingGateway() {
+      const url = document.getElementById("gatewayUrlInput").value.trim();
+      addLog(`Pinging Gateway: ${url}...`, "event-state");
+      try {
+        const testPayload = { prompt: "ping", mode: "local" };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(testPayload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          addLog(`Gateway reachable! HTTP ${res.status}`, "event-state");
+        } else {
+          addLog(`Gateway responded with HTTP ${res.status}`, "event-error");
+        }
+      } catch (e) {
+        addLog(`Gateway ping failed: ${e.message}`, "event-error");
+      }
+    }
+
+    // Notes & Memos Management
+    let savedNotes = [];
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function renderNotes(notes) {
+      savedNotes = Array.isArray(notes) ? notes : [];
+      const countBadge = document.getElementById("notesCountBadge");
+      if (countBadge) {
+        countBadge.innerText = `${savedNotes.length} note${savedNotes.length === 1 ? "" : "s"}`;
+      }
+
+      const notesListEl = document.getElementById("notesList");
+      if (!notesListEl) return;
+
+      if (savedNotes.length === 0) {
+        notesListEl.innerHTML = `
+          <div class="note-empty" id="notesEmptyState">
+            <div style="font-size: 24px; margin-bottom: 6px;">🦖 📝</div>
+            <div>No notes yet!</div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Say <i>"Take a note: Buy coffee"</i> to Dino, or type one above.</div>
+          </div>
+        `;
+        return;
+      }
+
+      let html = "";
+      for (const note of savedNotes) {
+        const noteId = escapeHtml(note.id || "");
+        const noteText = escapeHtml(note.text || "");
+        const noteTime = escapeHtml(note.created_at || "Just now");
+        html += `
+          <div class="note-card" id="card-${noteId}">
+            <div class="note-header">
+              <span class="note-time">🕒 ${noteTime}</span>
+              <div class="note-actions">
+                <button class="note-btn-icon" title="Copy to clipboard" onclick="copyNoteText('${noteId}', this)">📋 Copy</button>
+                <button class="note-btn-icon delete" title="Delete note" onclick="deleteNote('${noteId}')">🗑️</button>
+              </div>
+            </div>
+            <div class="note-content">${noteText}</div>
+          </div>
+        `;
+      }
+      notesListEl.innerHTML = html;
+    }
+
+    async function loadNotes() {
+      try {
+        const res = await fetch("/api/notes");
+        const data = await res.json();
+        if (data && data.notes) {
+          renderNotes(data.notes);
+        }
+      } catch (e) {
+        console.warn("Failed to load notes:", e);
+      }
+    }
+
+    async function addManualNote() {
+      const input = document.getElementById("manualNoteInput");
+      const text = input.value.trim();
+      if (!text) return;
+
+      try {
+        const res = await fetch("/api/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text })
+        });
+        const data = await res.json();
+        input.value = "";
+        if (data.notes) {
+          renderNotes(data.notes);
+        }
+        addLog(`Added Note: "${text}"`, "event-sound");
+      } catch (e) {
+        addLog(`Error saving note: ${e.message}`, "event-error");
+      }
+    }
+
+    function handleNoteKeyDown(e) {
+      if (e.key === "Enter") {
+        addManualNote();
+      }
+    }
+
+    async function deleteNote(noteId) {
+      try {
+        const res = await fetch("/api/notes/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: noteId })
+        });
+        const data = await res.json();
+        if (data.notes) {
+          renderNotes(data.notes);
+        }
+        addLog("Note deleted", "event-state");
+      } catch (e) {
+        addLog(`Error deleting note: ${e.message}`, "event-error");
+      }
+    }
+
+    async function clearAllNotes() {
+      if (savedNotes.length === 0) return;
+      if (!confirm("Are you sure you want to clear all notes?")) return;
+
+      try {
+        const res = await fetch("/api/notes/clear", { method: "POST" });
+        const data = await res.json();
+        renderNotes([]);
+        addLog("All notes cleared", "event-state");
+      } catch (e) {
+        addLog(`Error clearing notes: ${e.message}`, "event-error");
+      }
+    }
+
+    function copyNoteText(noteId, btnEl) {
+      const note = savedNotes.find(n => String(n.id) === String(noteId));
+      if (!note || !note.text) return;
+
+      navigator.clipboard.writeText(note.text).then(() => {
+        const origText = btnEl.innerText;
+        btnEl.innerText = "✅ Copied";
+        setTimeout(() => { btnEl.innerText = origText; }, 1500);
+      }).catch(err => {
+        console.warn("Clipboard copy failed:", err);
+      });
+    }
+
+    // Reminders & Timers Management
+    let savedReminders = [];
+
+    function formatRemainingTime(seconds) {
+      if (seconds <= 0) return "⏰ Due / Triggered";
+      if (seconds < 60) return `⏳ ${seconds}s left`;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      if (mins < 60) return `⏳ ${mins}m ${secs > 0 ? secs + "s " : ""}left`;
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return `⏳ ${hrs}h ${remMins}m left`;
+    }
+
+    function renderReminders(reminders) {
+      savedReminders = Array.isArray(reminders) ? reminders : [];
+      const activeCount = savedReminders.filter(r => !r.triggered && (r.remaining_seconds > 0 || r.remaining_seconds === undefined)).length;
+      const countBadge = document.getElementById("remindersCountBadge");
+      if (countBadge) {
+        countBadge.innerText = `${activeCount} active`;
+      }
+
+      const remindersListEl = document.getElementById("remindersList");
+      if (!remindersListEl) return;
+
+      if (savedReminders.length === 0) {
+        remindersListEl.innerHTML = `
+          <div class="note-empty" id="remindersEmptyState">
+            <div style="font-size: 24px; margin-bottom: 6px;">🦖 ⏰</div>
+            <div>No active reminders!</div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Say <i>"Remind me in 10 seconds to drink water"</i> or use the presets above.</div>
+          </div>
+        `;
+        return;
+      }
+
+      let html = "";
+      for (const rem of savedReminders) {
+        const remId = escapeHtml(rem.id || "");
+        const remText = escapeHtml(rem.text || "");
+        const remTime = escapeHtml(rem.due_time_str || "");
+        const isTriggered = Boolean(rem.triggered);
+        const remSecs = rem.remaining_seconds ?? 0;
+        const badgeClass = isTriggered ? "countdown-badge due" : "countdown-badge";
+        const badgeText = isTriggered ? "✅ Triggered" : formatRemainingTime(remSecs);
+
+        html += `
+          <div class="reminder-card ${isTriggered ? "triggered" : ""}" id="rem-card-${remId}">
+            <div class="reminder-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="${badgeClass}">${badgeText}</span>
+                <span class="note-time" style="font-size: 11px;">⏰ ${remTime}</span>
+              </div>
+              <div class="note-actions">
+                <button class="note-btn-icon delete" title="Delete reminder" onclick="deleteReminder('${remId}')">🗑️</button>
+              </div>
+            </div>
+            <div class="note-content" style="font-weight: 500;">${remText}</div>
+          </div>
+        `;
+      }
+      remindersListEl.innerHTML = html;
+    }
+
+    async function loadReminders() {
+      try {
+        const res = await fetch("/api/reminders");
+        const data = await res.json();
+        if (data && data.reminders) {
+          renderReminders(data.reminders);
+        }
+      } catch (e) {
+        console.warn("Failed to load reminders:", e);
+      }
+    }
+
+    async function addManualReminder() {
+      const input = document.getElementById("manualReminderInput");
+      const durationSelect = document.getElementById("manualReminderDuration");
+      const text = input.value.trim();
+      const delay = parseInt(durationSelect.value, 10) || 60;
+      if (!text) return;
+
+      try {
+        const res = await fetch("/api/reminders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text, delay_seconds: delay })
+        });
+        const data = await res.json();
+        input.value = "";
+        if (data.reminders) {
+          renderReminders(data.reminders);
+        }
+        addLog(`⏰ Set Reminder: "${text}" (${delay}s)`, "event-sound");
+      } catch (e) {
+        addLog(`Error saving reminder: ${e.message}`, "event-error");
+      }
+    }
+
+    function handleReminderKeyDown(e) {
+      if (e.key === "Enter") {
+        addManualReminder();
+      }
+    }
+
+    async function quickSetReminder(seconds, label) {
+      try {
+        const res = await fetch("/api/reminders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: label, delay_seconds: seconds })
+        });
+        const data = await res.json();
+        if (data.reminders) {
+          renderReminders(data.reminders);
+        }
+        addLog(`⏰ Quick Reminder set: "${label}" (${seconds}s)`, "event-sound");
+      } catch (e) {
+        addLog(`Error setting quick reminder: ${e.message}`, "event-error");
+      }
+    }
+
+    async function deleteReminder(remId) {
+      try {
+        const res = await fetch("/api/reminders/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: remId })
+        });
+        const data = await res.json();
+        if (data.reminders) {
+          renderReminders(data.reminders);
+        }
+        addLog("Reminder deleted", "event-state");
+      } catch (e) {
+        addLog(`Error deleting reminder: ${e.message}`, "event-error");
+      }
+    }
+
+    async function clearAllReminders() {
+      if (savedReminders.length === 0) return;
+      if (!confirm("Are you sure you want to clear all reminders?")) return;
+
+      try {
+        const res = await fetch("/api/reminders/clear", { method: "POST" });
+        const data = await res.json();
+        renderReminders([]);
+        addLog("All reminders cleared", "event-state");
+      } catch (e) {
+        addLog(`Error clearing reminders: ${e.message}`, "event-error");
+      }
+    }
+
+    // Real-time ticking countdown for active reminders
+    setInterval(() => {
+      let updated = false;
+      for (const rem of savedReminders) {
+        if (!rem.triggered && rem.remaining_seconds !== undefined && rem.remaining_seconds > 0) {
+          rem.remaining_seconds -= 1;
+          updated = true;
+        }
+      }
+      if (updated) {
+        renderReminders(savedReminders);
+      }
+    }, 1000);
+
+    // Server-Sent Events Connection
+    function connectSSE() {
+      if (sseEventSource) {
+        sseEventSource.close();
+      }
+
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+
+      sseEventSource = new EventSource("/api/events");
+
+      sseEventSource.onopen = () => {
+        statusDot.className = "status-dot connected";
+        statusText.innerText = "RPi Connected";
+        addLog("Connected to RPi Client SSE stream", "event-state");
+      };
+
+      sseEventSource.onerror = () => {
+        statusDot.className = "status-dot";
+        statusText.innerText = "Disconnected";
+      };
+
+      sseEventSource.addEventListener("state_change", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.state !== "SPEAKING") {
+            activeStreamEntry = null;
+            activeStreamContent = null;
+          }
+          updateDisplay(data.state, data.mode, data.expression, data.subtitle);
+          if (data.gateway_url) {
+            document.getElementById("gatewayUrlInput").value = data.gateway_url;
+            gatewayUrl = data.gateway_url;
+          }
+          if (data.motors) {
+            const autoSync = document.getElementById("autoSyncToggle").checked;
+            updateMotorDisplay(data.motors, autoSync);
+          }
+          if (data.notes) {
+            renderNotes(data.notes);
+          }
+          if (data.reminders) {
+            renderReminders(data.reminders);
+          }
+          addLog(`State -> <b>${data.state}</b> (${data.mode})`, "event-state");
+        } catch (err) {
+          console.error("SSE parse error", err);
+        }
+      });
+
+      sseEventSource.addEventListener("note_added", (e) => {
+        try {
+          const note = JSON.parse(e.data);
+          playWakeChime();
+          addLog(`📝 <b>Note Saved:</b> "${note.text}"`, "event-sound");
+          loadNotes();
+        } catch (err) {
+          console.error("Note added SSE parse error", err);
+        }
+      });
+
+      sseEventSource.addEventListener("notes_update", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.notes) {
+            renderNotes(data.notes);
+          }
+        } catch (err) {
+          console.error("Notes update SSE parse error", err);
+        }
+      });
+
+      sseEventSource.addEventListener("reminder_added", (e) => {
+        try {
+          const reminder = JSON.parse(e.data);
+          playWakeChime();
+          addLog(`⏰ <b>Reminder Scheduled:</b> "${reminder.text}" (${reminder.delay_seconds}s)`, "event-sound");
+          loadReminders();
+        } catch (err) {
+          console.error("Reminder added SSE parse error", err);
+        }
+      });
+
+      sseEventSource.addEventListener("reminder_due", (e) => {
+        try {
+          const reminder = JSON.parse(e.data);
+          playReminderAlarm();
+          addLog(`🚨 ⏰ <b>REMINDER DUE:</b> "${reminder.text}"`, "event-sound");
+          loadReminders();
+        } catch (err) {
+          console.error("Reminder due SSE parse error", err);
+        }
+      });
+
+      sseEventSource.addEventListener("reminders_update", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.reminders) {
+            renderReminders(data.reminders);
+          }
+        } catch (err) {
+          console.error("Reminders update SSE parse error", err);
+        }
+      });
+
+      sseEventSource.addEventListener("motor_update", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const autoSync = document.getElementById("autoSyncToggle").checked;
+          updateMotorDisplay(data, autoSync);
+        } catch (err) {
+          console.error("Motor event error", err);
+        }
+      });
+
+      sseEventSource.addEventListener("token", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.full_text !== undefined) {
+            document.getElementById("screenSubtitle").innerText = data.full_text;
+
+            // Stream generated text to Live Event Activity log
+            const logBox = document.getElementById("logBox");
+            if (!activeStreamEntry || !logBox.contains(activeStreamEntry)) {
+              activeStreamEntry = document.createElement("div");
+              activeStreamEntry.className = "log-entry event-token";
+              const timeStr = new Date().toLocaleTimeString();
+              activeStreamEntry.innerHTML = `<span class="time">[${timeStr}]</span> <b style="color: #34d399;">🦖 Dino:</b> <span class="stream-text"></span>`;
+              logBox.appendChild(activeStreamEntry);
+              activeStreamContent = activeStreamEntry.querySelector(".stream-text");
+            }
+            if (activeStreamContent) {
+              activeStreamContent.textContent = data.full_text;
+            }
+            logBox.scrollTop = logBox.scrollHeight;
+          }
+          if (data.expression) {
+            document.getElementById("screenExpression").innerText = data.expression;
+          }
+          if (data.state) {
+            updateDisplay(data.state, null, data.expression, data.full_text);
+          }
+          playTypewriterBeep();
+        } catch (err) {
+          console.error("Token event error", err);
+        }
+      });
+
+      sseEventSource.addEventListener("sound", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.sound === "wake") {
+            playWakeChime();
+            addLog("Sound FX: Wake chime", "event-sound");
+          } else if (data.sound === "reminder_alert") {
+            playReminderAlarm();
+            addLog("Sound FX: Reminder alarm", "event-sound");
+          } else if (data.sound === "typewriter") {
+            playTypewriterBeep();
+          }
+        } catch (err) {}
+      });
+
+      sseEventSource.addEventListener("config_change", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.gateway_url) {
+            document.getElementById("gatewayUrlInput").value = data.gateway_url;
+            addLog(`Gateway URL updated to: ${data.gateway_url}`, "event-state");
+          }
+        } catch (err) {}
+      });
+    }
+
+    // Initial load
+    window.addEventListener("DOMContentLoaded", () => {
+      connectSSE();
+      loadNotes();
+      loadReminders();
+      updateMotorDisplay(currentMotors, true);
+    });
+  </script>
+</body>
+</html>
