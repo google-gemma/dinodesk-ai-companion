@@ -1,0 +1,7 @@
+fastapi
+httpx
+pytest
+pytest-asyncio
+uvicorn
+openai-whisper
+

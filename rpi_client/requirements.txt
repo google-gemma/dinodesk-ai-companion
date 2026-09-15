@@ -1,0 +1,7 @@
+gpiozero
+Pillow
+pygame-ce
+requests
+st7789
+numpy
+sounddevice
