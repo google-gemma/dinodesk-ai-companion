@@ -43,7 +43,7 @@ if [ $IS_ONLINE -eq 0 ]; then
 fi
 
 # Comment out below to create a SSH tunnel
-#ssh -f -N -R 2400:localhost:22 -R 2401:localhost:5000 fenegi
+#ssh -f -N -R 2400:localhost:22 -R 2401:localhost:5000 YOUR_SERVER_IP
 #echo "[OK] tunnel created."
 
 # Update the codes
